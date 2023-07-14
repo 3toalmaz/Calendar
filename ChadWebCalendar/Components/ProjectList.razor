@@ -1,0 +1,51 @@
+﻿@using ChadWebCalendar.Data
+@using Task = System.Threading.Tasks.Task
+@inject Data.Services.ProjectService projectService
+@inject NavigationManager NavigationManager
+@inject DialogService DialogService
+@attribute [Authorize]
+@using AntDesign;
+@using ChadWebCalendar.Components.Projects
+
+<div class="list-group" style="height: 800px; width:100%; overflow: auto; align-items: center; border-collapse: collapse;">
+    @foreach (var project in projectService.GetProjects(user))
+    {
+        <input class="list-group-item"
+               type="button" 
+               @onclick="(()=> GetProject.InvokeAsync(project))" 
+               value="@project.IconNumber" 
+               style="font-size: 20px; border: 1px solid lightgray; width: 100%;"
+               />
+    }
+    <div style="width: 100%">
+        <p>
+            
+        </p>
+        
+        <Button OnClick="@(() => AddProjectPage())" Style="width:100%; overflow-wrap: break-word; font-size: 20px; height: 40px;">
+            ➕
+        </Button>
+    </div>
+</div>
+
+@code
+{
+    [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; }
+    
+    [Parameter] public EventCallback<Project> GetProject { get; set; }
+    
+    Data.User user;
+    
+    bool visibleProject = false;
+    
+    
+    protected override void OnInitialized()
+    {
+        user = projectService.GetUser(authenticationState.Result.User.Identity.Name);
+    }
+      
+    private async void AddProjectPage()
+    {
+        await DialogService.OpenAsync<ProjectAdd>("Создать проект");
+    }
+}

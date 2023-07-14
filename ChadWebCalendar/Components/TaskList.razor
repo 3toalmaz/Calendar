@@ -1,0 +1,68 @@
+@inject Data.Services.TaskService taskService
+@inject NavigationManager NavigationManager
+@using ChadWebCalendar.Components.Tasks
+@attribute [Authorize]
+@using AntDesign;
+@inject DialogService DialogService
+@using ChadWebCalendar.Data
+
+<div class="list-group" style="height: 800px; width: 100%; overflow: auto; font-size: 30px; word-wrap: break-word ">
+    @foreach (var task in taskService.GetTasks(user))
+    {
+        if (task.Project != null && task.Project.Id == projectId)
+        {
+            <div style="display:flex; width: 100%">
+                <button type="button" class="list-group-item list-group-item-success btn btn-light" @onclick="() => ChangeIsCompleted(task.Id)" style="width: 100%; overflow: hidden; word-break:break-word;">
+                    <div class="task_container" Style="justify-content: space-between; overflow:hidden; max-width: 100%;">
+                        @if (task.IsCompleted == false)
+                        {
+                            @task.Name
+                        }
+                        else
+                        {
+                            <s>@task.Name</s>
+                        }
+
+                    </div>
+                </button>
+                <Button @onclick="() => EditTaskPage(task.Id)" style="height:100%">
+                    &#9881;
+                </Button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    Data.User user;
+    
+    [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; }
+      
+    bool destroyModal = false;
+    bool visibleEditTask = false;
+    
+    protected override void OnInitialized()
+    {
+        user = taskService.GetUser(authenticationState.Result.User.Identity.Name);
+    }
+
+    [Parameter] public int? projectId { get; set; }
+    public int? taskId { get; set; }
+
+    private async System.Threading.Tasks.Task EditTaskPage(int? taskId)
+    {
+        await DialogService.OpenAsync<TaskEdit>("Изменить задачу",
+            new Dictionary<string, object> { { "taskId", taskId } });
+    }
+    
+    private void ChangeIsCompleted(int? taskId)
+    {
+        using (ApplicationContext db = new ApplicationContext())
+        {
+            Data.Task task = taskService.GetTask(taskId);
+            task.IsCompleted = !task.IsCompleted;
+            db.Tasks.Update(task);
+            db.SaveChanges();
+        }
+    }
+}

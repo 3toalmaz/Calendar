@@ -1,0 +1,28 @@
+﻿@page "/login"
+@using ChadWebCalendar.Data.Models
+@inherits LoginModel
+
+
+<div class="col-4" style="margin: 300px">
+    <h1>Войдите в систему</h1>
+    <EditForm Model="LoginData" OnValidSubmit="LoginAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="form-floating mb-3">
+
+            <InputText id="login" @bind-Value="LoginData.model.Login" class="form-control" placeholder="Login" />
+            <label for="login">Логин</label>
+        </div>
+        <div class="form-floating">
+
+            <InputText id="password" @bind-Value="LoginData.model.Password" class="form-control" placeholder="Password" type="password" />
+            <label for="password">Пароль</label>
+        </div>
+        <p class="my-4">
+            <button type="submit" class="btn btn-primary">Войти</button>
+            <a href="/register" type="button" class="btn btn-primary">Регистрация</a>
+        </p>
+
+    </EditForm>
+
+</div>

@@ -1,0 +1,120 @@
+﻿@page "/"
+@using ChadWebCalendar.Components.Tasks
+@using ChadWebCalendar.Components
+@using ChadWebCalendar.Components.Projects
+@using ChadWebCalendar
+@using ChadWebCalendar.Pages
+@using ChadWebCalendar.Data.Models
+@using ChadWebCalendar.Data.Services
+@using AntDesign;
+@using ChadWebCalendar.Data
+@using ButtonType = AntDesign.ButtonType
+@inject IAccountService _accountService
+@inject NavigationManager NavigationManager
+@inject IToastService toastService
+@inject IJSRuntime JSRuntime
+@inject DialogService DialogService
+@inject ProjectService projectService
+@implements IDisposable
+<div>
+    <AuthorizeView>
+        <Authorized>
+            <div class="navmenu">
+                <NavigationMenu></NavigationMenu>
+            </div>
+            <div class="main_container">
+                <div class="projectlist" style="width: 60px;">
+                    <ProjectList GetProject="GetProjectId" />
+                </div>
+                <div class="tasklist">
+                    <div Style="display: flex; justify-content: space-between; width: 100%; overflow: hidden; ">
+                        <Button Type="@ButtonType.Default" OnClick="() => Distribute(projId)" style="height: 50px; font-size: 18px;">👩‍💼</Button>
+                        <Button OnClick="@(() => EditProjectPage(projId))" Style="height: 50px; width: 100%; overflow: hidden; overflow-wrap: break-word; font-size: 18px;">
+                            @projName
+                        </Button>
+                        <Button OnClick="CreateTaskPage" style="height: 50px; width: 62px; font-size: 18px;">
+                            &#10133;
+                        </Button>
+                    </div>
+                    <TaskList projectId="@projId" />
+                </div>
+                <div class="scheduler">
+                    <Scheduler></Scheduler>
+                </div>
+            </div>
+            <div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div>
+                <LogIn />
+                
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+
+@code{
+
+    [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; }
+    
+    private List<ChadWebCalendar.Data.Task> Tasks = new List<ChadWebCalendar.Data.Task>();
+    
+    private IList<Claim> userClaim = new List<Claim>();
+    
+    NotificationsWorker notificationWorker = new NotificationsWorker();
+    
+    private LoginModel model = new LoginModel();
+
+    public int? projId = 1;
+
+    public string projName = "Задачи";
+
+    protected override void OnInitialized()
+    {
+        notificationWorker.WorkerInitialization(authenticationState.Result.User.Identity.Name);
+        notificationWorker.NotificationReadyToShow += showNotification;
+    }
+
+    public void Dispose()
+    {
+        notificationWorker.Stop();
+    }
+    private async void Distribute(int? projectId)
+    {
+        await DialogService.OpenAsync<TaskDistributorPage>($"👩‍💼 Распланировать задачи из проекта: {projName} 👩‍💼",
+            new Dictionary<string, object> { { "projectId", projectId } });
+    }
+
+    private void showNotification()
+    {
+        foreach (var item in notificationWorker.TypesOfNotification)
+            toastService.ShowInfo($"{item}");
+        JSRuntime.InvokeVoidAsync("setTitle", "You have notification");
+    }
+
+    private async void CreateTaskPage()
+    {
+        await DialogService.OpenAsync<TaskAdd>("Добавить задачу");
+    }
+
+    private async void EditProjectPage(int? projectId)
+    {
+        await DialogService.OpenAsync<ProjectEdit>("Редактировать проект",
+            new Dictionary<string, object> { { "projectId", projectId } });
+    }
+
+    private async void Logout()
+    {
+        notificationWorker.Stop();
+        await _accountService.LogoutAsync();
+    }
+
+    private void GetProjectId(Project pr)
+    {
+        projId = pr.Id;
+        projName = pr.Name;
+        projectService.UpdateSelectedProject(authenticationState.Result.User.Identity.Name,  (int)projId);
+    }
+}
